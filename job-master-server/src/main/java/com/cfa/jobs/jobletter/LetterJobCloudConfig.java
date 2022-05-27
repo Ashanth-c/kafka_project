@@ -30,8 +30,9 @@ import org.springframework.kafka.listener.KafkaMessageListenerContainer;
 @EnableBatchProcessing
 public class LetterJobCloudConfig {
 
-    public static String TOPIC = "step-execution-events-lol";
-    public static String GROUP_ID = "step-response_partition";
+    public static String TOPICSent = "topic-sent";
+    public static String TOPICReceived = "topic-received";
+    public static String GROUP_ID = "stepresponse_partition";
 
     @Autowired
     private RemoteChunkingManagerStepBuilderFactory managerStepBuilderFactory;
@@ -54,29 +55,15 @@ public class LetterJobCloudConfig {
                 .build();
     }
 
-   /* @Bean
-    public Step letterStep() {
-        return this.managerFactory.get("letterStep")
-                .partitioner("workerStep", new LetterPartitioner())
-                .repository(jobRepository)
-                .outputChannel(requests())
-                .inputChannel(replies())
-                .build();*/
         @Bean
         public Step letterStep() {
             return this.managerStepBuilderFactory.get("masterStep")
                     .<Message,Letter>chunk(1)
-                    .reader(new LetterReader().reader())
+                    .reader(new LetterReader())
                     .outputChannel(requests()) // requests sent to workers
                     .inputChannel(replies()) // replies received from workers
                     .build();
         }
-      /*      return this.stepBuilderFactory.get("letterStep")
-                    .<Message , Letter> chunk(1)
-                    .reader(new LetterReader().reader())
-                    .processor(new LetterProcessor())
-                    .writer(new LetterWriter())
-                    .build();*/
 
 
     @Bean
@@ -90,7 +77,7 @@ public class LetterJobCloudConfig {
     @Bean
     public IntegrationFlow outboundFlow() {
         final KafkaProducerMessageHandler kafkaMessageHandler = new KafkaProducerMessageHandler(kafkaTemplate);
-        kafkaMessageHandler.setTopicExpression(new LiteralExpression(TOPIC));
+        kafkaMessageHandler.setTopicExpression(new LiteralExpression(TOPICSent));
         return IntegrationFlows
                 .from(requests())
                 .handle(kafkaMessageHandler)
@@ -99,7 +86,7 @@ public class LetterJobCloudConfig {
 
     @Bean
     public IntegrationFlow inboundFlow() {
-        final ContainerProperties containerProps = new ContainerProperties(TOPIC);
+        final ContainerProperties containerProps = new ContainerProperties(TOPICReceived);
         containerProps.setGroupId(GROUP_ID);
 
         final KafkaMessageListenerContainer container = new KafkaMessageListenerContainer(kafkaFactory, containerProps);
