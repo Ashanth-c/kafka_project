@@ -25,7 +25,8 @@ import org.springframework.kafka.listener.KafkaMessageListenerContainer;
 @EnableBatchIntegration
 @EnableBatchProcessing
 public class LetterChunkingConfig {
-    public static String TOPIC = "step-execution-eventslol";
+    public static String TOPICSent = "topic-sent";
+    public static String TOPICReceived = "topic-received";
     public static String GROUP_ID = "stepresponse_partition";
 
     @Autowired
@@ -60,7 +61,7 @@ public class LetterChunkingConfig {
 
     @Bean
     public IntegrationFlow inboundFlow() {
-        final ContainerProperties containerProps = new ContainerProperties(PartitionConfig.TOPIC);
+        final ContainerProperties containerProps = new ContainerProperties(TOPICSent);
         containerProps.setGroupId(PartitionConfig.GROUP_ID);
 
         final KafkaMessageListenerContainer container = new KafkaMessageListenerContainer(kafkaFactory, containerProps);
@@ -75,7 +76,7 @@ public class LetterChunkingConfig {
     @Bean
     public IntegrationFlow outboundFlow() {
         final KafkaProducerMessageHandler kafkaMessageHandler = new KafkaProducerMessageHandler(kafkaTemplate);
-        kafkaMessageHandler.setTopicExpression(new LiteralExpression(PartitionConfig.TOPIC));
+        kafkaMessageHandler.setTopicExpression(new LiteralExpression(TOPICReceived));
         return IntegrationFlows
                 .from(replies())
                 .handle(kafkaMessageHandler)
